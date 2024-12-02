@@ -10,24 +10,23 @@ using Proiect_MPA.Models;
 
 namespace Proiect_MPA.Controllers
 {
-    public class ReservationsController : Controller
+    public class TablesController : Controller
     {
         private readonly RestaurantContext _context;
 
-        public ReservationsController(RestaurantContext context)
+        public TablesController(RestaurantContext context)
         {
             _context = context;
         }
 
-        // GET: Reservations
+        // GET: Tables
         public async Task<IActionResult> Index()
         {
-            //return View(await _context.Reservation.ToListAsync());
-            var restaurantContext = _context.Reservation.Include(r => r.Client);
+            var restaurantContext = _context.Table.Include(t => t.Waiter).Include(t => t.Zone);
             return View(await restaurantContext.ToListAsync());
         }
 
-        // GET: Reservations/Details/5
+        // GET: Tables/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -35,46 +34,45 @@ namespace Proiect_MPA.Controllers
                 return NotFound();
             }
 
-            var reservation = await _context.Reservation
-                .Include(r => r.Client)
+            var table = await _context.Table
+                .Include(t => t.Waiter)
+                .Include(t => t.Zone)
                 .FirstOrDefaultAsync(m => m.ID == id);
-            if (reservation == null)
+            if (table == null)
             {
                 return NotFound();
             }
 
-            return View(reservation);
+            return View(table);
         }
 
-        // GET: Reservations/Create
+        // GET: Tables/Create
         public IActionResult Create()
         {
-            ViewBag.ClientID = new SelectList(_context.Client.Select(c => new
-            {
-                c.ID,
-                Display = c.FullName + " - " + c.Email
-            }), "ID", "Display");
+            ViewBag.ZoneID = new SelectList(_context.Zone, "ID", "Name");
+            ViewBag.WaiterID = new SelectList(_context.Waiter, "ID", "Name");
             return View();
         }
 
-        // POST: Reservations/Create
+        // POST: Tables/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ID,ClientID,TableID,ReservationDate,ReservationTime,ReservationDuration")] Reservation reservation)
+        public async Task<IActionResult> Create([Bind("ID,Seats,WaiterID,ZoneID,ReservationID")] Table table)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(reservation);
+                _context.Add(table);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ClientID"] = new SelectList(_context.Client, "ID", "ID", reservation.ClientID);
-            return View(reservation);
+            ViewData["WaiterID"] = new SelectList(_context.Waiter, "ID", "Name", table.WaiterID);
+            ViewData["ZoneID"] = new SelectList(_context.Zone, "ID", "Name", table.ZoneID);
+            return View(table);
         }
 
-        // GET: Reservations/Edit/5
+        // GET: Tables/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -82,23 +80,24 @@ namespace Proiect_MPA.Controllers
                 return NotFound();
             }
 
-            var reservation = await _context.Reservation.FindAsync(id);
-            if (reservation == null)
+            var table = await _context.Table.FindAsync(id);
+            if (table == null)
             {
                 return NotFound();
             }
-            ViewData["ClientID"] = new SelectList(_context.Client, "ID", "ID", reservation.ClientID);
-            return View(reservation);
+            ViewData["WaiterID"] = new SelectList(_context.Waiter, "ID", "ID", table.WaiterID);
+            ViewData["ZoneID"] = new SelectList(_context.Zone, "ID", "ID", table.ZoneID);
+            return View(table);
         }
 
-        // POST: Reservations/Edit/5
+        // POST: Tables/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("ID,ClientID,TableID,ReservationDate,ReservationTime,ReservationDuration")] Reservation reservation)
+        public async Task<IActionResult> Edit(int id, [Bind("ID,Seats,WaiterID,ZoneID,ReservationID")] Table table)
         {
-            if (id != reservation.ID)
+            if (id != table.ID)
             {
                 return NotFound();
             }
@@ -107,12 +106,12 @@ namespace Proiect_MPA.Controllers
             {
                 try
                 {
-                    _context.Update(reservation);
+                    _context.Update(table);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ReservationExists(reservation.ID))
+                    if (!TableExists(table.ID))
                     {
                         return NotFound();
                     }
@@ -123,11 +122,12 @@ namespace Proiect_MPA.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ClientID"] = new SelectList(_context.Client, "ID", "ID", reservation.ClientID);
-            return View(reservation);
+            ViewData["WaiterID"] = new SelectList(_context.Waiter, "ID", "ID", table.WaiterID);
+            ViewData["ZoneID"] = new SelectList(_context.Zone, "ID", "ID", table.ZoneID);
+            return View(table);
         }
 
-        // GET: Reservations/Delete/5
+        // GET: Tables/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -135,35 +135,36 @@ namespace Proiect_MPA.Controllers
                 return NotFound();
             }
 
-            var reservation = await _context.Reservation
-                .Include(r => r.Client)
+            var table = await _context.Table
+                .Include(t => t.Waiter)
+                .Include(t => t.Zone)
                 .FirstOrDefaultAsync(m => m.ID == id);
-            if (reservation == null)
+            if (table == null)
             {
                 return NotFound();
             }
 
-            return View(reservation);
+            return View(table);
         }
 
-        // POST: Reservations/Delete/5
+        // POST: Tables/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var reservation = await _context.Reservation.FindAsync(id);
-            if (reservation != null)
+            var table = await _context.Table.FindAsync(id);
+            if (table != null)
             {
-                _context.Reservation.Remove(reservation);
+                _context.Table.Remove(table);
             }
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        private bool ReservationExists(int id)
+        private bool TableExists(int id)
         {
-            return _context.Reservation.Any(e => e.ID == id);
+            return _context.Table.Any(e => e.ID == id);
         }
     }
 }

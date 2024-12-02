@@ -10,24 +10,22 @@ using Proiect_MPA.Models;
 
 namespace Proiect_MPA.Controllers
 {
-    public class ReservationsController : Controller
+    public class ClientsController : Controller
     {
         private readonly RestaurantContext _context;
 
-        public ReservationsController(RestaurantContext context)
+        public ClientsController(RestaurantContext context)
         {
             _context = context;
         }
 
-        // GET: Reservations
+        // GET: Clients
         public async Task<IActionResult> Index()
         {
-            //return View(await _context.Reservation.ToListAsync());
-            var restaurantContext = _context.Reservation.Include(r => r.Client);
-            return View(await restaurantContext.ToListAsync());
+            return View(await _context.Client.ToListAsync());
         }
 
-        // GET: Reservations/Details/5
+        // GET: Clients/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -35,46 +33,39 @@ namespace Proiect_MPA.Controllers
                 return NotFound();
             }
 
-            var reservation = await _context.Reservation
-                .Include(r => r.Client)
+            var client = await _context.Client
                 .FirstOrDefaultAsync(m => m.ID == id);
-            if (reservation == null)
+            if (client == null)
             {
                 return NotFound();
             }
 
-            return View(reservation);
+            return View(client);
         }
 
-        // GET: Reservations/Create
+        // GET: Clients/Create
         public IActionResult Create()
         {
-            ViewBag.ClientID = new SelectList(_context.Client.Select(c => new
-            {
-                c.ID,
-                Display = c.FullName + " - " + c.Email
-            }), "ID", "Display");
             return View();
         }
 
-        // POST: Reservations/Create
+        // POST: Clients/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ID,ClientID,TableID,ReservationDate,ReservationTime,ReservationDuration")] Reservation reservation)
+        public async Task<IActionResult> Create([Bind("ID,FirstName,LastName,Adress,Email,Phone")] Client client)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(reservation);
+                _context.Add(client);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ClientID"] = new SelectList(_context.Client, "ID", "ID", reservation.ClientID);
-            return View(reservation);
+            return View(client);
         }
 
-        // GET: Reservations/Edit/5
+        // GET: Clients/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -82,23 +73,22 @@ namespace Proiect_MPA.Controllers
                 return NotFound();
             }
 
-            var reservation = await _context.Reservation.FindAsync(id);
-            if (reservation == null)
+            var client = await _context.Client.FindAsync(id);
+            if (client == null)
             {
                 return NotFound();
             }
-            ViewData["ClientID"] = new SelectList(_context.Client, "ID", "ID", reservation.ClientID);
-            return View(reservation);
+            return View(client);
         }
 
-        // POST: Reservations/Edit/5
+        // POST: Clients/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("ID,ClientID,TableID,ReservationDate,ReservationTime,ReservationDuration")] Reservation reservation)
+        public async Task<IActionResult> Edit(int id, [Bind("ID,FirstName,LastName,Adress,Email,Phone")] Client client)
         {
-            if (id != reservation.ID)
+            if (id != client.ID)
             {
                 return NotFound();
             }
@@ -107,12 +97,12 @@ namespace Proiect_MPA.Controllers
             {
                 try
                 {
-                    _context.Update(reservation);
+                    _context.Update(client);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ReservationExists(reservation.ID))
+                    if (!ClientExists(client.ID))
                     {
                         return NotFound();
                     }
@@ -123,11 +113,10 @@ namespace Proiect_MPA.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ClientID"] = new SelectList(_context.Client, "ID", "ID", reservation.ClientID);
-            return View(reservation);
+            return View(client);
         }
 
-        // GET: Reservations/Delete/5
+        // GET: Clients/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -135,35 +124,34 @@ namespace Proiect_MPA.Controllers
                 return NotFound();
             }
 
-            var reservation = await _context.Reservation
-                .Include(r => r.Client)
+            var client = await _context.Client
                 .FirstOrDefaultAsync(m => m.ID == id);
-            if (reservation == null)
+            if (client == null)
             {
                 return NotFound();
             }
 
-            return View(reservation);
+            return View(client);
         }
 
-        // POST: Reservations/Delete/5
+        // POST: Clients/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var reservation = await _context.Reservation.FindAsync(id);
-            if (reservation != null)
+            var client = await _context.Client.FindAsync(id);
+            if (client != null)
             {
-                _context.Reservation.Remove(reservation);
+                _context.Client.Remove(client);
             }
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        private bool ReservationExists(int id)
+        private bool ClientExists(int id)
         {
-            return _context.Reservation.Any(e => e.ID == id);
+            return _context.Client.Any(e => e.ID == id);
         }
     }
 }
