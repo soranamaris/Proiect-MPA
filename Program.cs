@@ -1,13 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Proiect_MPA.Data;
+using Proiect_MPA.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<RestaurantContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("RestaurantContext") ?? throw new InvalidOperationException("Connection string 'RestaurantContext' not found.")));
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
+builder.Services.AddSignalR();
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
@@ -34,4 +35,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+app.MapHub<ChatHub>("/Chat");
 app.Run();
