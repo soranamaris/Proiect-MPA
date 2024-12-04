@@ -22,7 +22,7 @@ namespace Proiect_MPA.Models
         public Zone? Zone { get; set; }
 
         // Programul pentru rezervări
-        [Display(Name = "Disponibilitate")]
+        [Display(Name = "Disponibilitate (ore)")]
 
         public int? ReservationID { get; set; }
         public Reservation? Reservation { get; set; }

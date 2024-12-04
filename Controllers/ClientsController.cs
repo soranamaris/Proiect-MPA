@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ using Proiect_MPA.Models;
 
 namespace Proiect_MPA.Controllers
 {
+    [Authorize]
     public class ClientsController : Controller
     {
         private readonly RestaurantContext _context;
@@ -44,6 +46,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Clients/Create
+        [Authorize(Roles = "Manager")]
         public IActionResult Create()
         {
             return View();
@@ -54,6 +57,7 @@ namespace Proiect_MPA.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Create([Bind("ID,FirstName,LastName,Adress,Email,Phone")] Client client)
         {
             if (ModelState.IsValid)
@@ -66,6 +70,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Clients/Edit/5
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -80,12 +85,13 @@ namespace Proiect_MPA.Controllers
             }
             return View(client);
         }
-
+        
         // POST: Clients/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Edit(int id, [Bind("ID,FirstName,LastName,Adress,Email,Phone")] Client client)
         {
             if (id != client.ID)
@@ -117,6 +123,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Clients/Delete/5
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -137,6 +144,7 @@ namespace Proiect_MPA.Controllers
         // POST: Clients/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var client = await _context.Client.FindAsync(id);

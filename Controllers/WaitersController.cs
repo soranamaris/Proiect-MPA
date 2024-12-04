@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ using Proiect_MPA.Models;
 
 namespace Proiect_MPA.Controllers
 {
+    [Authorize]
     public class WaitersController : Controller
     {
         private readonly RestaurantContext _context;
@@ -19,6 +21,7 @@ namespace Proiect_MPA.Controllers
             _context = context;
         }
 
+       
         // GET: Waiters
         public async Task<IActionResult> Index()
         {
@@ -44,6 +47,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Waiters/Create
+        [Authorize(Roles = "Manager")]
         public IActionResult Create()
         {
             return View();
@@ -54,6 +58,7 @@ namespace Proiect_MPA.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Create([Bind("ID,Name")] Waiter waiter)
         {
             if (ModelState.IsValid)
@@ -66,6 +71,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Waiters/Edit/5
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -86,6 +92,7 @@ namespace Proiect_MPA.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Edit(int id, [Bind("ID,Name")] Waiter waiter)
         {
             if (id != waiter.ID)
@@ -117,6 +124,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Waiters/Delete/5
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -137,6 +145,7 @@ namespace Proiect_MPA.Controllers
         // POST: Waiters/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var waiter = await _context.Waiter.FindAsync(id);

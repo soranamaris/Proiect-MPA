@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -10,21 +13,40 @@ using Proiect_MPA.Models;
 
 namespace Proiect_MPA.Controllers
 {
+    [Authorize]
     public class ReservationsController : Controller
     {
         private readonly RestaurantContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public ReservationsController(RestaurantContext context)
+
+        public ReservationsController(RestaurantContext context, UserManager<IdentityUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // GET: Reservations
+        
         public async Task<IActionResult> Index()
         {
-            //return View(await _context.Reservation.ToListAsync());
-            var restaurantContext = _context.Reservation.Include(r => r.Client);
-            return View(await restaurantContext.ToListAsync());
+            // Obține adresa de e-mail a utilizatorului conectat
+            var userEmail = _userManager.GetUserName(User);
+
+            if (User.IsInRole("Manager"))
+            {
+                // Manager vede toate rezervările
+                var allReservations = await _context.Reservation.Include(r => r.Client).ToListAsync();
+                return View(allReservations);
+            }
+            else
+            {
+              var clientReservations = await _context.Reservation
+            .Include(r => r.Client)
+            .Where(r => r.Client.Email == userEmail) // Compară email-ul utilizatorului conectat
+            .ToListAsync();
+        return View(clientReservations);
+            }
         }
 
         // GET: Reservations/Details/5
@@ -47,6 +69,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Reservations/Create
+
         public IActionResult Create()
         {
             ViewBag.ClientID = new SelectList(_context.Client.Select(c => new
@@ -75,6 +98,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Reservations/Edit/5
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -96,6 +120,7 @@ namespace Proiect_MPA.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Edit(int id, [Bind("ID,ClientID,TableID,ReservationDate,ReservationTime,ReservationDuration")] Reservation reservation)
         {
             if (id != reservation.ID)
@@ -128,6 +153,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Reservations/Delete/5
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -149,6 +175,7 @@ namespace Proiect_MPA.Controllers
         // POST: Reservations/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var reservation = await _context.Reservation.FindAsync(id);

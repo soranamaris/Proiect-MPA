@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Proiect_MPA.Data;
 using Proiect_MPA.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Proiect_MPA.Controllers
 {
+    [Authorize]
     public class ZonesController : Controller
     {
         private readonly RestaurantContext _context;
@@ -18,7 +20,7 @@ namespace Proiect_MPA.Controllers
         {
             _context = context;
         }
-
+        
         // GET: Zones
         public async Task<IActionResult> Index()
         {
@@ -44,6 +46,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Zones/Create
+        [Authorize(Roles = "Manager")]
         public IActionResult Create()
         {
             return View();
@@ -54,6 +57,7 @@ namespace Proiect_MPA.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Create([Bind("ID,Name")] Zone zone)
         {
             if (ModelState.IsValid)
@@ -66,6 +70,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Zones/Edit/5
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -86,6 +91,7 @@ namespace Proiect_MPA.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Edit(int id, [Bind("ID,Name")] Zone zone)
         {
             if (id != zone.ID)
@@ -117,6 +123,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Zones/Delete/5
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -137,6 +144,7 @@ namespace Proiect_MPA.Controllers
         // POST: Zones/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var zone = await _context.Zone.FindAsync(id);
