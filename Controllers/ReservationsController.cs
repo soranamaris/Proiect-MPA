@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Proiect_MPA.Data;
 using Proiect_MPA.Models;
@@ -27,26 +28,52 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Reservations
-        
-        public async Task<IActionResult> Index()
+
+        public async Task<IActionResult> Index(string sortOrder, string searchString)
         {
+            // Configurează parametrii pentru sortare și căutare
+            ViewData["DateSortParm"] = String.IsNullOrEmpty(sortOrder) ? "date_desc" : "";
+            ViewData["CurrentFilter"] = searchString;
+
             // Obține adresa de e-mail a utilizatorului conectat
             var userEmail = _userManager.GetUserName(User);
+
+            IQueryable<Reservation> reservations;
 
             if (User.IsInRole("Manager"))
             {
                 // Manager vede toate rezervările
-                var allReservations = await _context.Reservation.Include(r => r.Client).ToListAsync();
-                return View(allReservations);
+                reservations = _context.Reservation.Include(r => r.Client);
             }
             else
             {
-              var clientReservations = await _context.Reservation
-            .Include(r => r.Client)
-            .Where(r => r.Client.Email == userEmail) // Compară email-ul utilizatorului conectat
-            .ToListAsync();
-        return View(clientReservations);
+                // Utilizatorii normali văd doar rezervările proprii
+                reservations = _context.Reservation
+                    .Include(r => r.Client)
+                    .Where(r => r.Client.Email == userEmail);
             }
+
+            // Adu toate datele din baza de date
+            var reservationList = await reservations.ToListAsync();
+
+            // Aplică filtrarea în memorie
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                reservationList = reservationList
+                    .Where(r => r.Client != null &&
+                                !string.IsNullOrEmpty(r.Client.FullName) &&
+                                r.Client.FullName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            // Aplică sortarea
+            reservationList = sortOrder switch
+            {
+                "date_desc" => reservationList.OrderByDescending(r => r.ReservationDate).ToList(),
+                _ => reservationList.OrderBy(r => r.ReservationDate).ToList()
+            };
+
+            return View(reservationList);
         }
 
         // GET: Reservations/Details/5
