@@ -104,6 +104,8 @@ namespace Proiect_MPA.Controllers
                 c.ID,
                 Display = c.FullName + " - " + c.Email
             }), "ID", "Display");
+            ViewBag.ClientID = new SelectList(_context.Client, "ID", "ID");
+            ViewBag.TableID = new SelectList(_context.Table, "ID", "ID");
             return View();
         }
 
@@ -116,11 +118,36 @@ namespace Proiect_MPA.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Add(reservation);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                // Verifică dacă există deja o rezervare
+                var existingReservation = await _context.Reservation
+                    .AnyAsync(r =>
+                        r.TableID == reservation.TableID &&
+                        r.ReservationDate.Date == reservation.ReservationDate.Date &&
+                        r.ReservationTime == reservation.ReservationTime);
+
+                if (existingReservation)
+                {
+                    ModelState.AddModelError("", "Această masă este deja rezervată pentru data și ora selectată.");
+                    ViewBag.ClientID = new SelectList(_context.Client, "ID", "FullName", reservation.ClientID);
+                    ViewBag.TableID = new SelectList(_context.Table, "ID", "ID", reservation.TableID);
+                    return View(reservation);
+                }
+
+                try
+                {
+                    _context.Add(reservation);
+                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Eroare la salvarea rezervării: {ex.Message}");
+                    ModelState.AddModelError("", "Eroare internă la salvarea rezervării.");
+                }
             }
-            ViewData["ClientID"] = new SelectList(_context.Client, "ID", "ID", reservation.ClientID);
+
+            ViewBag.ClientID = new SelectList(_context.Client, "ID", "FullName", reservation.ClientID);
+            ViewBag.TableID = new SelectList(_context.Table, "ID", "ID", reservation.TableID);
             return View(reservation);
         }
 
@@ -180,7 +207,7 @@ namespace Proiect_MPA.Controllers
         }
 
         // GET: Reservations/Delete/5
-        [Authorize(Roles = "Manager")]
+        
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -202,7 +229,7 @@ namespace Proiect_MPA.Controllers
         // POST: Reservations/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Manager")]
+        
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var reservation = await _context.Reservation.FindAsync(id);
@@ -218,6 +245,18 @@ namespace Proiect_MPA.Controllers
         private bool ReservationExists(int id)
         {
             return _context.Reservation.Any(e => e.ID == id);
+        }
+        [HttpGet]
+        public async Task<JsonResult> GetUnavailableTimes(int tableId, DateTime reservationDate)
+        {
+            // Obține orele deja rezervate pentru masa și data selectată
+            var unavailableTimes = await _context.Reservation
+        .Where(r => r.TableID == tableId && r.ReservationDate.Date == reservationDate.Date)
+        .Select(r => r.ReservationTime)
+        .ToListAsync();
+
+            Console.WriteLine($"Table ID: {tableId}, Date: {reservationDate}, Unavailable Times: {string.Join(", ", unavailableTimes)}");
+            return Json(unavailableTimes);
         }
     }
 }

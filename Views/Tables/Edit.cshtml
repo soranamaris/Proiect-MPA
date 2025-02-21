@@ -34,6 +34,36 @@
                 <span asp-validation-for="ReservationID" class="text-danger"></span>
             </div>
             <div class="form-group">
+    <div class="table-responsive">
+        <table class="table">
+            <tr>
+            @{
+                int cnt = 0;
+                @if (Model.AssignedScheduleDataList != null){
+
+                
+                foreach (var schedule in Model.AssignedScheduleDataList)
+                {
+                    if (cnt++ % 3 == 0)
+                    {
+                        @:</tr><tr>
+                    }
+                    @:<td>
+                        <input type="checkbox" 
+                               name="selectedSchedules" 
+                               value="@schedule.ScheduleID" 
+                               @(Html.Raw(schedule.Assigned ? "checked=\"checked\"" : "")) />
+                        @schedule.ScheduleID @: @schedule.Name
+                    @:</td>
+                }
+                @:</tr>
+                }
+            }
+        </table>
+    </div>
+</div>
+
+            <div class="form-group">
                 <input type="submit" value="Save" class="btn btn-primary" />
             </div>
         </form>

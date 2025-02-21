@@ -5,8 +5,12 @@ namespace Proiect_MPA.Models
     public class Schedule
     {
         public int ID { get; set; }
-        [Display(Name = "Disponibilitate")]
+        [Display(Name = "Eveniment")]
         public string ScheduleName { get; set; }
+
+        [Display(Name = "Descriere eveniment")]
+        public string? Description { get; set; }
+
         [Display(Name = "Day of Week")]
         public DayOfWeek DayOfWeek { get; set; }
 

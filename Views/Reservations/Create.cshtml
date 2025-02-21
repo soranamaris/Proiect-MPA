@@ -27,9 +27,14 @@
                 <span asp-validation-for="ReservationDate" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="ReservationTime" class="control-label"></label>
+                @* <label asp-for="ReservationTime" class="control-label"></label>
                 <input asp-for="ReservationTime" class="form-control" />
-                <span asp-validation-for="ReservationTime" class="text-danger"></span>
+                <span asp-validation-for="ReservationTime" class="text-danger"></span> *@
+                <select id="ReservationTime" asp-for="ReservationTime" class="form-control">
+                   
+                    <option value="">Selectați o oră</option>
+                    @* Poți adăuga aici intervalele disponibile, de exemplu 9:00-21:00 *@
+                </select>
             </div>
             <div class="form-group">
                 <label asp-for="ReservationDuration" class="control-label"></label>
@@ -39,6 +44,46 @@
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>
+            @section Scripts {
+                <script>
+                                              $(document).ready(function () {
+                        $('#TableID, #ReservationDate').change(function () {
+                            var tableId = $('#TableID').val();
+                            var reservationDate = $('#ReservationDate').val();
+
+                            if (tableId && reservationDate) {
+                                $.getJSON('@Url.Action("GetUnavailableTimes", "Reservations")',
+                                    { tableId: tableId, reservationDate: reservationDate },
+                                    function (data) {
+                                        // Curăță dropdown-ul pentru ore
+                                        $('#ReservationTime').empty();
+                                        $('#ReservationTime').append('<option value="">Selectați o oră</option>');
+
+                                        // Ore disponibile
+                                        var allTimes = [
+                                            "09:00", "10:00", "11:00", "12:00", "13:00",
+                                            "14:00", "15:00", "16:00", "17:00", "18:00",
+                                            "19:00", "20:00", "21:00"
+                                        ];
+
+                                        // Adaugă orele disponibile
+                                        allTimes.forEach(function (time) {
+                                            if (!data.includes(time)) {
+                                                $('#ReservationTime').append(`<option value="${time}">${time}</option>`);
+                                            }
+                                        });
+                                    }).fail(function () {
+                                        console.error("Eroare la obținerea orelor indisponibile.");
+                                    });
+                            }
+                        });
+                    });
+                </script>
+
+                @{
+                    await Html.RenderPartialAsync("_ValidationScriptsPartial");
+                }
+            }
         </form>
     </div>
 </div>
@@ -47,6 +92,7 @@
     <a asp-action="Index">Back to List</a>
 </div>
 
-@section Scripts {
+@* @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 }
+ *@

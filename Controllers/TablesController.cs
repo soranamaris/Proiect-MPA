@@ -15,17 +15,24 @@ namespace Proiect_MPA.Controllers
     public class TablesController : Controller
     {
         private readonly RestaurantContext _context;
+       
 
         public TablesController(RestaurantContext context)
         {
             _context = context;
+            
+
         }
 
         
         // GET: Tables
         public async Task<IActionResult> Index()
         {
-            var restaurantContext = _context.Table.Include(t => t.Waiter).Include(t => t.Zone);
+            var restaurantContext = _context.Table
+        .Include(t => t.Waiter)
+        .Include(t => t.Zone)
+        .Include(t => t.BookingSchedules) // Include BookingSchedules
+            .ThenInclude(bs => bs.Schedule); // Include Schedule asociat
             return View(await restaurantContext.ToListAsync());
         }
 
@@ -55,6 +62,7 @@ namespace Proiect_MPA.Controllers
         {
             ViewBag.ZoneID = new SelectList(_context.Zone, "ID", "Name");
             ViewBag.WaiterID = new SelectList(_context.Waiter, "ID", "Name");
+            ViewBag.ReservationID = new SelectList(_context.Schedule, "ID", "ScheduleName");
             return View();
         }
 
@@ -64,7 +72,7 @@ namespace Proiect_MPA.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Manager")]
-        public async Task<IActionResult> Create([Bind("ID,Seats,WaiterID,ZoneID,ReservationID")] Table table)
+        public async Task<IActionResult> Create([Bind("ID,NumberTable,Seats,WaiterID,ZoneID,ReservationID")] Table table)
         {
             if (ModelState.IsValid)
             {
@@ -74,6 +82,8 @@ namespace Proiect_MPA.Controllers
             }
             ViewData["WaiterID"] = new SelectList(_context.Waiter, "ID", "Name", table.WaiterID);
             ViewData["ZoneID"] = new SelectList(_context.Zone, "ID", "Name", table.ZoneID);
+            ViewData["ReservationID"] = new SelectList(_context.Schedule, "ID", "ScheduleName", table.ReservationID);
+
             return View(table);
         }
 
@@ -86,13 +96,24 @@ namespace Proiect_MPA.Controllers
                 return NotFound();
             }
 
-            var table = await _context.Table.FindAsync(id);
+            var table = await _context.Table
+         .Include(t => t.BookingSchedules)
+         .ThenInclude(bs => bs.Schedule) // Include programările asociate
+         .FirstOrDefaultAsync(t => t.ID == id);
+
             if (table == null)
             {
                 return NotFound();
             }
+
+            // Populează ViewBag și datele de programare
+            var pageModel = new TableSchedulesPageModel();
+            pageModel.PopulateAssignedScheduleData(_context, table);
+            table.AssignedScheduleDataList = pageModel.AssignedScheduleDataList ?? new List<AssignedScheduleData>(); // Populează datele programărilor
             ViewData["WaiterID"] = new SelectList(_context.Waiter, "ID", "ID", table.WaiterID);
             ViewData["ZoneID"] = new SelectList(_context.Zone, "ID", "ID", table.ZoneID);
+            ViewData["ReservationID"] = new SelectList(_context.Schedule, "ID", "ScheduleName", table.ReservationID);
+
             return View(table);
         }
 
@@ -102,9 +123,18 @@ namespace Proiect_MPA.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Manager")]
-        public async Task<IActionResult> Edit(int id, [Bind("ID,Seats,WaiterID,ZoneID,ReservationID")] Table table)
+        public async Task<IActionResult> Edit(int id, [Bind("ID,NumberTable,Seats,WaiterID,ZoneID,ReservationID")] Table table , string[] selectedSchedules)
         {
             if (id != table.ID)
+            {
+                return NotFound();
+            }
+
+            var tableToUpdate = await _context.Table
+                .Include(t => t.BookingSchedules) // Include programările existente
+                .FirstOrDefaultAsync(t => t.ID == id);
+
+            if (tableToUpdate == null)
             {
                 return NotFound();
             }
@@ -113,8 +143,17 @@ namespace Proiect_MPA.Controllers
             {
                 try
                 {
-                    _context.Update(table);
+                    // Actualizează programările tabelului
+                    UpdateTableSchedules(selectedSchedules, tableToUpdate);
+
+                    tableToUpdate.Seats = table.Seats;
+                    tableToUpdate.WaiterID = table.WaiterID;
+                    tableToUpdate.ZoneID = table.ZoneID;
+                    tableToUpdate.ReservationID = table.ReservationID;
+
+                    _context.Update(tableToUpdate);
                     await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -127,13 +166,51 @@ namespace Proiect_MPA.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(Index));
             }
-            ViewData["WaiterID"] = new SelectList(_context.Waiter, "ID", "ID", table.WaiterID);
-            ViewData["ZoneID"] = new SelectList(_context.Zone, "ID", "ID", table.ZoneID);
+
+            ViewData["WaiterID"] = new SelectList(_context.Waiter, "ID", "Name", table.WaiterID);
+            ViewData["ZoneID"] = new SelectList(_context.Zone, "ID", "Name", table.ZoneID);
+            ViewData["ReservationID"] = new SelectList(_context.Schedule, "ID", "ScheduleName", table.ReservationID);
+
             return View(table);
         }
+        private void UpdateTableSchedules(string[] selectedSchedules, Table tableToUpdate)
+        {
+            if (selectedSchedules == null)
+            {
+                tableToUpdate.BookingSchedules = new List<BookingSchedule>();
+                return;
+            }
 
+            var selectedSchedulesHS = new HashSet<string>(selectedSchedules);
+            var tableSchedules = new HashSet<int>(tableToUpdate.BookingSchedules.Select(bs => bs.ScheduleID));
+
+            foreach (var schedule in _context.Schedule)
+            {
+                if (selectedSchedulesHS.Contains(schedule.ID.ToString()))
+                {
+                    if (!tableSchedules.Contains(schedule.ID))
+                    {
+                        tableToUpdate.BookingSchedules.Add(new BookingSchedule
+                        {
+                            TableID = tableToUpdate.ID,
+                            ScheduleID = schedule.ID
+                        });
+                    }
+                }
+                else
+                {
+                    if (tableSchedules.Contains(schedule.ID))
+                    {
+                        var scheduleToRemove = tableToUpdate.BookingSchedules.FirstOrDefault(bs => bs.ScheduleID == schedule.ID);
+                        if (scheduleToRemove != null)
+                        {
+                            _context.BookingSchedule.Remove(scheduleToRemove);
+                        }
+                    }
+                }
+            }
+        }
         // GET: Tables/Delete/5
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Delete(int? id)
@@ -175,5 +252,6 @@ namespace Proiect_MPA.Controllers
         {
             return _context.Table.Any(e => e.ID == id);
         }
+
     }
 }
